@@ -39,15 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
+            const message = data.message || 'Unknown error';
+            const status = data.status;
+
             if (!response.ok) {
-                throw new Error(data.message || 'Server error');
+                throw new Error('Server error');
             }
 
-            if (data.status === 'success') {
-                showMessage('Access granted', 'success');
-            } else {
-                showMessage('Access denied', 'error');
-            }
+            showMessage(message, status)
 
         } catch (error) {
             console.error('Error:', error);
