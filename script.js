@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginButton = document.getElementById('login-button');
     const loginContainer = document.getElementById('login-container');
+    const loadingContainer = document.getElementById('loading-container');
+
     const message = document.getElementById('message');
     const loginInput = document.getElementById('login');
     const passwordInput = document.getElementById('password');
@@ -29,6 +31,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
+    const savedSession = getCookie('session');
+    const savedKey = getCookie('key');
+
+    if (savedSession) {
+        const response = fetch(API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                session: savedSession,
+                key: savedKey,
+            }),
+        });
+
+        response.then(async (response) => {
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Server error');
+            }
+
+            if (data.status === 'success') {
+                loginContainer.classList.add('hidden');
+                content.innerHTML = data.content;
+            } else {
+                showMessage(data.message, data.status);
+            }
+        }).catch((error) => {
+            console.error('Error:', error);
+            showMessage(error.message || 'Error occurred', 'error');
+        }).finally(() => {
+            loadingContainer.classList.add('hidden');
+        });
+    } else {
+        loadingContainer.classList.add('hidden');
+    }
+
     loginButton.addEventListener('click', async () => {
         const login = loginInput.value.trim();
         const password = passwordInput.value.trim();
@@ -39,8 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const savedSession = getCookie('session');
-
             const response = await fetch(API_URL, {
                 method: 'POST',
                 mode: 'cors',
@@ -60,15 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Server error');
             }
 
-            showMessage(data.message, data.status);
-
             if (data.status === 'success') {
                 loginContainer.classList.add('hidden');
-                content.classList.remove('hidden');
+                content.innerHTML = data.content;
 
                 if (data.session) {
                     document.cookie = `session=${data.session};`;
+                    document.cookie = `key=${data.key};`;
                 }
+            } else {
+                showMessage(data.message, data.status);
             }
 
         } catch (error) {
